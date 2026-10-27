@@ -1,7 +1,7 @@
 // 全国波情報 Service Worker（アプリを裏で支える小さなプログラム）
 // 画面の部品だけを保存する。予測データはアプリ側が端末に保存するので、ここでは触らない。
-const CACHE = 'nami-doko-zenkoku-v1.0.3';
-const SHELL = ['./', 'index.html', 'zenkoku-nami.webmanifest', 'banner.jpg', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'];
+const CACHE = 'nami-doko-zenkoku-v1.0.4';
+const SHELL = ['./', 'index.html', 'zenkoku-nami.webmanifest', 'banner-2.jpg', 'icon2-192.png', 'icon2-512.png', 'icon2-maskable-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
