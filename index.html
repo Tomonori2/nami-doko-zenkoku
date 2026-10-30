@@ -206,7 +206,7 @@ footer a{color:var(--sea)}
 </footer>
 
 <script>
-const VERSION = 'v1.0.8';
+const VERSION = 'v1.0.9';
 
 // ───── ポイントの特徴データ（ここを直すと判定が変わる） ─────
 // area   : どのエリアか（下の AREAS の id）
@@ -219,16 +219,17 @@ const VERSION = 'v1.0.8';
 // tide   : 合う潮 low=引き潮 / high=満ち潮 / any=どちらでも
 // level  : 0=初心者から 1=中級から 2=上級むけ
 // sure   : false は特徴データがまだ不確か（湾の奥など。◎は出さない）
+// beach  : true は外洋に開いた砂浜。大きいと閉じやすく、周期が短いとさらに崩れやすい（2026-10-31 BCMと見比べて足した）
 // tuned  : true は現地の実況と見比べて直したポイント（伊良湖・静岡＝元の「波どこ？」から）
 // 伊良湖・静岡以外の向き・うねりの範囲は、海岸の地形と一般に知られた特徴からの推定（2026-10-25）＝答え合わせで直す
 const SPOTS = [
-  {id:'oarai',  name:'大洗',         area:'ibaraki',  w:0, s:0, face:110, sw:[20,200],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'東向きの砂浜。北東〜南のうねり、西〜北西の風が合う。港のそばは沖へ出る流れに注意。'},
-  {id:'otake',  name:'大竹海岸',     area:'ibaraki',  w:1, s:0, face:105, sw:[20,200],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:1, sure:true, note:'鉾田の長い砂浜。北東〜南東のうねりをよく拾い、力のある波になりやすい。西風が合う。'},
-  {id:'katakai',name:'片貝',         area:'chibaN',   w:0, s:0, face:125, sw:[45,200],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'九十九里の砂浜。東〜南のうねり、北西〜西の風が合う。遠浅で初心者も入りやすい。'},
-  {id:'shidashita',name:'一宮（志田下）',area:'chibaN',w:1, s:0, face:105, sw:[30,190], gain:1, wrap:.08, shelter:[],         tide:'any', level:1, sure:true, note:'東向き。北東〜南東のうねりをよく拾い、千葉でも波が立ちやすい。西風が合う。上手な人が多く混みやすい。'},
-  {id:'taito',  name:'太東',         area:'chibaN',   w:1, s:0, face:110, sw:[40,200],  gain:.9, wrap:.08, shelter:[[160,220]], tide:'any', level:1, sure:true, note:'岬の北側で、南よりの風をかわしやすい。東〜南東のうねり、西〜南西の風が合う。'},
-  {id:'kamogawa',name:'鴨川',        area:'chibaS',   w:0, s:0, face:145, sw:[80,230],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'南東向きの砂浜。東〜南のうねり、北〜北西の風が合う。'},
-  {id:'chikura',name:'千倉',         area:'chibaS',   w:1, s:0, face:125, sw:[60,220],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'外房の南。東〜南のうねりをよく拾う。西〜北西の風が合う。'},
+  {id:'oarai',  name:'大洗',         area:'ibaraki',  w:0, s:0, face:110, sw:[20,200],  gain:1.15,wrap:.08, shelter:[],          tide:'any', level:0, sure:true, beach:true, note:'東向きの砂浜。北東〜南のうねり、西〜北西の風が合う。港のそばは沖へ出る流れに注意。'},
+  {id:'otake',  name:'大竹海岸',     area:'ibaraki',  w:1, s:0, face:105, sw:[20,200],  gain:1.15,wrap:.08, shelter:[],          tide:'any', level:1, sure:true, beach:true, note:'鉾田の長い砂浜。北東〜南東のうねりをよく拾い、力のある波になりやすい。西風が合う。'},
+  {id:'katakai',name:'片貝',         area:'chibaN',   w:0, s:0, face:125, sw:[45,200],  gain:1.15,wrap:.08, shelter:[],          tide:'any', level:0, sure:true, beach:true, note:'九十九里の砂浜。東〜南のうねり、北西〜西の風が合う。遠浅で初心者も入りやすい。'},
+  {id:'shidashita',name:'一宮（志田下）',area:'chibaN',w:1, s:0, face:105, sw:[30,190], gain:1.15,wrap:.08, shelter:[],         tide:'any', level:1, sure:true, beach:true, note:'東向き。北東〜南東のうねりをよく拾い、千葉でも波が立ちやすい。西風が合う。上手な人が多く混みやすい。'},
+  {id:'taito',  name:'太東',         area:'chibaN',   w:1, s:0, face:110, sw:[40,200],  gain:.9, wrap:.08, shelter:[[160,220]], tide:'any', level:1, sure:true, beach:true, note:'岬の北側で、南よりの風をかわしやすい。東〜南東のうねり、西〜南西の風が合う。'},
+  {id:'kamogawa',name:'鴨川',        area:'chibaS',   w:0, s:0, face:145, sw:[80,230],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, beach:true, note:'南東向きの砂浜。東〜南のうねり、北〜北西の風が合う。'},
+  {id:'chikura',name:'千倉',         area:'chibaS',   w:1, s:0, face:125, sw:[60,220],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, beach:true, note:'外房の南。東〜南のうねりをよく拾う。西〜北西の風が合う。'},
   {id:'kugenuma',name:'鵠沼',        area:'shonan',   w:0, s:0, face:190, sw:[130,250], gain:.85,wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'南向きの砂浜。南東〜南西のうねり、北〜北東の風が合う。湘南でいちばん人が多い。'},
   {id:'tsujido',name:'辻堂',         area:'shonan',   w:0, s:0, face:190, sw:[130,250], gain:.85,wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'鵠沼の西どなりの砂浜。南のうねり、北〜北東の風が合う。'},
   {id:'shichiri',name:'七里ヶ浜',    area:'shonan',   w:0, s:0, face:195, sw:[140,260], gain:.8, wrap:.08, shelter:[],          tide:'any', level:1, sure:true, note:'南〜南西のうねり、北〜北東の風が合う。台風のうねりで良くなりやすい。岩や浅い場所に注意。'},
@@ -241,13 +242,13 @@ const SPOTS = [
   {id:'loco',   name:'ロコ',         area:'irago',    w:0, s:0, face:160, sw:[112,203], gain:.8, wrap:.08, shelter:[[200,285]], tide:'any', level:1, sure:true, tuned:true, note:'赤羽根港の東側。堤防が西よりの風を弱める。堤防ぎわは沖へ出る流れに注意。'},
   {id:'zen',    name:'全日本',       area:'irago',    w:0, s:0, face:165, sw:[112,248], gain:.7, wrap:.08, shelter:[],          tide:'any', level:0, sure:true, tuned:true, note:'南東〜南西のうねり、北〜北西の風が合う。砂浜で波はやさしめ。'},
   {id:'shin',   name:'新日本',       area:'irago',    w:0, s:0, face:160, sw:[130,203], gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, tuned:true, note:'南東〜南のうねり、北〜北西の風が合う。東よりのうねりはロングビーチより小さめ。'},
-  {id:'kou',    name:'国府の浜',     area:'mie',      w:0, s:0, face:130, sw:[80,220],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'志摩の東向きの砂浜。東〜南のうねり、西〜北西の風が合う。'},
+  {id:'kou',    name:'国府の浜',     area:'mie',      w:0, s:0, face:130, sw:[80,220],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, beach:true, note:'志摩の東向きの砂浜。東〜南のうねり、西〜北西の風が合う。'},
   // 紀伊水道の中は、湾の外の予報から計算するので当たりにくい＝sure:false
   {id:'isonoura',name:'磯ノ浦',      area:'wakayama', w:0, s:0, face:290, sw:[190,320], gain:.7, wrap:.08, shelter:[],          tide:'any', level:0, sure:false, note:'紀伊水道の奥。台風の南うねりや、冬の強い西風の時に立つ。東〜南東の風が合う。ふだんは小さい。'},
   {id:'komatsu',name:'小松海岸',     area:'shikoku',  w:0, s:0, face:95,  sw:[90,200],  gain:.8, wrap:.08, shelter:[],          tide:'any', level:0, sure:false, note:'徳島の東向きの砂浜。紀伊水道に入る台風のうねりで立つ。西風が合う。'},
-  {id:'ikumi',  name:'生見',         area:'shikoku',  w:1, s:1, face:140, sw:[70,230],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'高知・東洋町の砂浜。東〜南のうねりをよく拾う。北〜北西の風が合う。'},
-  {id:'kizaki', name:'木崎浜',       area:'miyazaki', w:0, s:0, face:100, sw:[30,200],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'宮崎市の東向きの砂浜。北東〜南のうねり、西風が合う。'},
-  {id:'okura',  name:'お倉ヶ浜',     area:'miyazaki', w:1, s:1, face:95,  sw:[30,190],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, note:'日向市の長い砂浜。北東〜南東のうねりをよく拾う。西風が合う。'}
+  {id:'ikumi',  name:'生見',         area:'shikoku',  w:1, s:1, face:140, sw:[70,230],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, beach:true, note:'高知・東洋町の砂浜。東〜南のうねりをよく拾う。北〜北西の風が合う。'},
+  {id:'kizaki', name:'木崎浜',       area:'miyazaki', w:0, s:0, face:100, sw:[30,200],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, beach:true, note:'宮崎市の東向きの砂浜。北東〜南のうねり、西風が合う。'},
+  {id:'okura',  name:'お倉ヶ浜',     area:'miyazaki', w:1, s:1, face:95,  sw:[30,190],  gain:1,  wrap:.08, shelter:[],          tide:'any', level:0, sure:true, beach:true, note:'日向市の長い砂浜。北東〜南東のうねりをよく拾う。西風が合う。'}
 ];
 // エリア。wx＝風と天気の地点（wnはその名前）、sea＝波の予報の地点（沖）、jma＝気象庁の実測と注意報・警報
 // 気象庁の番号は amedastable.json / area.json で確かめた（2026-10-25）
@@ -363,11 +364,16 @@ function judge(sp, h, level){
   else if (r.face <= z.hi) sizeScore = 1 - .7 * (r.face - z.b) / (z.hi - z.b);
   else { sizeScore = 0; r.dangers.push('あなたのレベルには波が大きすぎる'); }
   // 伊良湖の砂浜は、カタ〜アタマを超えると風が良くても波が閉じやすい（元の「波どこ？」の実況から）
-  if (sp.area === 'irago' && r.face > 1.1) {
+  if ((sp.area === 'irago' || sp.beach) && r.face > 1.1) {
     const pts = [[1.1, 1], [1.35, .62], [1.7, .42], [2.2, .22]];
     let cap = pts[pts.length - 1][1];
     for (let i = 1; i < pts.length; i++) if (r.face <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; cap = y0 + (y1 - y0) * (r.face - x0) / (x1 - x0); break; }
-    if (cap < sizeScore) { sizeScore = cap; r.cautions.push('伊良湖はカタより大きいと、風が良くても波が閉じやすい'); }
+    if (cap < sizeScore) { sizeScore = cap; r.cautions.push('砂浜はカタより大きいと、風が良くても波が閉じやすい'); }
+  }
+  // 周期が短いのに大きめの波は、砂浜では一気に崩れて乗りにくい（10/31 大洗・大竹・片貝：沖1.4〜1.6m・8〜9秒でアプリ◎、BCM 20〜25点）
+  if (sp.beach && r.face >= 1) {
+    const sw = h.parts.filter(p => p[0] > .05).map(p => p[2]), swT = sw.length ? median(sw) : h.period;
+    if (swT < 10) { sizeScore *= .55; r.cautions.push(`周期${swT.toFixed(0)}秒と短めで、砂浜では崩れやすい波`); }
   }
   const fit = expo > .8 ? 'うねりの向きが合う' : expo > .45 ? 'うねりは少しそれる' : 'うねりの向きが合わず小さくなる';
   r.reasons.push(`サイズ目安：${sizeLabel(r.face)}（${fit}）`);
