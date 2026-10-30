@@ -3,8 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>全国波情報</title>
-<meta name="description" content="今日の風とうねりから、全国のメジャーなサーフポイントのどこが良さそうかを◎○△×で出す無料アプリ。">
+<title>全国波情報｜無料のサーフィン波予想（茨城・千葉・湘南・静岡・伊良湖・宮崎）</title>
+<meta name="description" content="全国24のサーフポイントの波を、風とうねりから◎○△×で予想する無料アプリ。初心者・中級・上級のレベル別に、今日・明日・あさっての良い時間がわかります。大洗・一宮・鴨川・鵠沼・御前崎・伊良湖・木崎浜など。登録なし。">
+<!-- 検索（Google）とSNSで共有したときの表示。og:image は共有したときに出る大きな絵 -->
+<link rel="canonical" href="https://tomonori2.github.io/nami-doko-zenkoku/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="全国波情報">
+<meta property="og:title" content="全国波情報｜無料のサーフィン波予想">
+<meta property="og:description" content="全国24のサーフポイントの波を◎○△×で予想。初心者・中級・上級のレベル別。登録なし・無料。">
+<meta property="og:url" content="https://tomonori2.github.io/nami-doko-zenkoku/">
+<meta property="og:image" content="https://tomonori2.github.io/nami-doko-zenkoku/banner-2.jpg">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"全国波情報","url":"https://tomonori2.github.io/nami-doko-zenkoku/",
+ "description":"全国24のサーフポイントの波を、風とうねりから◎○△×で予想する無料のサーフィン波予想アプリ。",
+ "applicationCategory":"SportsApplication","operatingSystem":"Android, iOS, Windows, Mac（ブラウザ）","inLanguage":"ja",
+ "offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"image":"https://tomonori2.github.io/nami-doko-zenkoku/banner-2.jpg"}
+</script>
 <meta name="theme-color" content="#0b6fa4">
 <link rel="manifest" href="zenkoku-nami.webmanifest">
 <link rel="icon" href="icon3-192.png" type="image/png">
@@ -142,6 +158,25 @@ footer a{color:var(--sea)}
     </form>
   </details>
 
+  <!-- 検索で見つけてもらうための、ふつうの文章の説明（画面の下のほう） -->
+  <div class="card">
+    <h2>全国波情報について</h2>
+    <p style="margin:0 0 6px;font-size:14px">全国のメジャーなサーフポイント24か所の波を、風の向きと強さ・うねりの大きさと向きから ◎○△× で予想する、無料のサーフィン波予想アプリです。初心者・中級・上級を選ぶと、そのレベルに合った判定になります。今日・明日・あさっての、朝6時から夕方までの良い時間がわかります。登録やログインはいりません。</p>
+    <ul style="margin:0;padding-left:1.2em;font-size:14px">
+      <li><b>茨城</b>：大洗・大竹海岸（鉾田）</li>
+      <li><b>千葉北</b>：片貝（九十九里）・一宮（志田下）・太東</li>
+      <li><b>千葉南</b>：鴨川・千倉</li>
+      <li><b>湘南</b>：鵠沼・辻堂・七里ヶ浜</li>
+      <li><b>静岡</b>：御前崎メイン・御前崎メロン・静波・片浜</li>
+      <li><b>伊良湖（愛知）</b>：ロングビーチ・ロコ・全日本・新日本</li>
+      <li><b>三重</b>：国府の浜（志摩）</li>
+      <li><b>和歌山</b>：磯ノ浦</li>
+      <li><b>四国</b>：小松海岸（徳島）・生見（高知）</li>
+      <li><b>宮崎</b>：木崎浜・お倉ヶ浜（日向）</li>
+    </ul>
+    <p style="margin:6px 0 0;font-size:14px">海の写真や動画を送ってもらうと、予想と実際を見比べて判定を直していきます。サーフィンをしない方の、旅行や散歩のときの写真も大歓迎です。</p>
+  </div>
+
   <div class="card">
     <h2>ことばの意味</h2>
     <dl>
@@ -171,7 +206,7 @@ footer a{color:var(--sea)}
 </footer>
 
 <script>
-const VERSION = 'v1.0.7';
+const VERSION = 'v1.0.8';
 
 // ───── ポイントの特徴データ（ここを直すと判定が変わる） ─────
 // area   : どのエリアか（下の AREAS の id）
