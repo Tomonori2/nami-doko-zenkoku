@@ -122,12 +122,13 @@ footer a{color:var(--sea)}
   <details class="card" id="sendCard" hidden>
     <summary style="cursor:pointer;font-size:17px;font-weight:800">📷 いまの海の写真・動画を送る</summary>
     <form id="sendForm" class="form">
+      <p style="margin:8px 0;font-weight:700">🏖️ サーフィンをしない方も大歓迎です。旅行・散歩・釣りで海に行ったときの写真もうれしいです。サイズや乗りやすさが分からなければ「分からない」のままでOK。写真だけで十分です。</p>
       <p class="small" style="margin:8px 0">送った写真・動画は、管理人が確認してから載せます（ひとことも同じ）。送った人の名前は出ません。顔や車のナンバーがはっきり写ったものは送らないでください。位置情報は、送る前にこのスマホの中で消します。</p>
       <label>ポイント<select id="fSpot" required></select></label>
       <label>撮った時刻<input type="time" id="fTime" required></label>
-      <label>サイズ<select id="fSize" required></select></label>
-      <label>乗りやすさ<select id="fCond" required>
-        <option value="3">◎ とても良い</option><option value="2" selected>○ 良い</option><option value="1">△ いまひとつ</option><option value="0">× 乗れない</option></select></label>
+      <label>波の大きさ（サーフィンの言い方。分からなければそのままでOK）<select id="fSize" required></select></label>
+      <label>乗りやすさ（分からなければそのままでOK）<select id="fCond" required>
+        <option value="-1" selected>分からない</option><option value="3">◎ とても良い</option><option value="2">○ 良い</option><option value="1">△ いまひとつ</option><option value="0">× 乗れない</option></select></label>
       <label>ひとこと（なくてもOK）<input type="text" id="fMemo" maxlength="60" placeholder="例：東風で面ザワつき、人は少なめ"></label>
       <label>写真か動画（動画は15秒まで）<input type="file" id="fPhoto" accept="image/*,video/*" required></label>
       <div id="vidBox" hidden>
@@ -170,7 +171,7 @@ footer a{color:var(--sea)}
 </footer>
 
 <script>
-const VERSION = 'v1.0.6';
+const VERSION = 'v1.0.7';
 
 // ───── ポイントの特徴データ（ここを直すと判定が変わる） ─────
 // area   : どのエリアか（下の AREAS の id）
@@ -455,7 +456,8 @@ function initVideoPick(){
 function initForm(){
   initVideoPick();
   $('fSpot').innerHTML = AREAS.map(a => `<optgroup label="${esc(a.tag)}">${SPOTS.filter(s => s.area === a.id).map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</optgroup>`).join('');
-  $('fSize').innerHTML = SIZES.map((s, i) => `<option value="${i}"${i === 4 ? ' selected' : ''}>${esc(s)}</option>`).join('');
+  // サーフィンをしない人も送れるように「分からない」(-1)を最初に。受け口は -1 を空欄として記録する
+  $('fSize').innerHTML = '<option value="-1" selected>分からない</option>' + SIZES.map((s, i) => `<option value="${i}">${esc(s)}</option>`).join('');
   const n = new Date(); $('fTime').value = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
   $('sendForm').addEventListener('submit', async e => {
     e.preventDefault();
