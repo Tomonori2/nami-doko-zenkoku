@@ -51,6 +51,8 @@ main{max-width:560px;margin:0 auto;padding:12px 12px 40px}
 .best{border:2px solid var(--sea)}
 .best .big{font-size:26px;font-weight:800;line-height:1.3}
 .best .why{margin:6px 0 0;font-size:14px}
+.stamp{float:right;height:90px;margin:-4px -4px 4px 8px}
+.stamp-msg{display:block;height:90px;margin:6px auto 0}
 .spot{padding:12px 14px}
 .spot summary{list-style:none;cursor:pointer}
 .spot summary::-webkit-details-marker{display:none}
@@ -206,7 +208,7 @@ footer a{color:var(--sea)}
 </footer>
 
 <script>
-const VERSION = 'v1.0.10';
+const VERSION = 'v1.0.11';
 
 // ───── ポイントの特徴データ（ここを直すと判定が変わる） ─────
 // area   : どのエリアか（下の AREAS の id）
@@ -522,6 +524,7 @@ function initForm(){
       const res = await fetch(PHOTO_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }).then(r => r.json());
       if (!res.ok) throw new Error(res.err);
       msg.textContent = '送りました。確認してから載せます。ありがとう！';
+      msg.insertAdjacentHTML('beforeend', '<img class="stamp-msg" src="st-arigato.png" alt="">');
       $('fMemo').value = ''; $('fPhoto').value = ''; $('fOk').checked = false; $('fPhoto').dispatchEvent(new Event('change'));
     } catch (err) {
       msg.textContent = { limit: '今日の受付がいっぱいです。', vlimit: '今日の動画の受付がいっぱいです。写真なら送れます。', busy: '混み合っています。少しおいてもう一度送ってください。',
@@ -616,10 +619,10 @@ function render(){
   let best = null;
   res.forEach(r => r.slots.forEach(s => { if (!isPast(d, s.hr) && s.j.mark >= 0 && (!best || s.j.score > best.s.j.score)) best = { r, s }; }));
   if (!best || best.s.j.mark < 1) {
-    $('best').innerHTML = `<div class="card best"><h2>${dayLabel(d)} のおすすめ</h2><div class="big">見送りがおすすめ</div><p class="why">あなたのレベルに合う条件のポイントが見つかりませんでした。下の理由を見て、別の日を考えてみてください。</p></div>`;
+    $('best').innerHTML = `<div class="card best"><img class="stamp" src="st-gomen.png" alt=""><h2>${dayLabel(d)} のおすすめ</h2><div class="big">見送りがおすすめ</div><p class="why">あなたのレベルに合う条件のポイントが見つかりませんでした。下の理由を見て、別の日を考えてみてください。</p></div>`;
   } else {
     const j = best.s.j;
-    $('best').innerHTML = `<div class="card best"><h2>${dayLabel(d)} のおすすめ</h2><div class="big">${markHtml(j.mark)} ${esc(best.r.sp.name)}　${best.s.hr}時ごろ</div><p class="why">${j.reasons.map(esc).join('<br>')}${j.cautions.length ? '<br><strong>注意：' + j.cautions.map(esc).join('・') + '</strong>' : ''}</p><p class="small" style="margin:6px 0 0">${esc(conf(best.r.sp, d * 24 + best.s.hr))}</p></div>`;
+    $('best').innerHTML = `<div class="card best">${j.mark === 3 ? '<img class="stamp" src="st-iinami.png" alt="">' : ''}<h2>${dayLabel(d)} のおすすめ</h2><div class="big">${markHtml(j.mark)} ${esc(best.r.sp.name)}　${best.s.hr}時ごろ</div><p class="why">${j.reasons.map(esc).join('<br>')}${j.cautions.length ? '<br><strong>注意：' + j.cautions.map(esc).join('・') + '</strong>' : ''}</p><p class="small" style="margin:6px 0 0">${esc(conf(best.r.sp, d * 24 + best.s.hr))}</p></div>`;
   }
 
   // ポイントごとのカード。★を付けたポイントを先頭に、そのあとは良い順
