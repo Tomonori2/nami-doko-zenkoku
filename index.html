@@ -130,6 +130,7 @@ footer a{color:var(--sea)}
   <div id="status" class="card small">上のボタンからエリアを選んでください。</div>
   <button class="btn" id="goSend" hidden style="width:100%;margin:0 0 12px;padding:13px;font-size:17px">📷 いまの海の写真・動画を送る</button>
   <div id="warn"></div>
+  <div id="summary"></div>
   <div id="best"></div>
   <p class="legend"><b class="m-3">◎</b> とても良い　<b class="m-2">○</b> 良い　<b class="m-1">△</b> いまひとつ　<b class="m-0">×</b> 向かない　<b class="m-d">危</b> 入らない<br>マスの下の字は風です。<span style="color:var(--good);font-weight:700">緑</span>は陸から吹く風（面がきれい）。☆を押したポイントは「★お気に入り」にまとまります。</p>
   <div id="spots"></div>
@@ -208,7 +209,7 @@ footer a{color:var(--sea)}
 </footer>
 
 <script>
-const VERSION = 'v1.0.11';
+const VERSION = 'v1.0.12';
 
 // ───── ポイントの特徴データ（ここを直すと判定が変わる） ─────
 // area   : どのエリアか（下の AREAS の id）
@@ -578,7 +579,7 @@ function render(){
   document.querySelectorAll('[data-area]').forEach(b => b.classList.toggle('on', b.dataset.area === state.area));
   renderLog();
   if (!ready()) {
-    ['warn', 'best', 'spots', 'photos', 'sea'].forEach(id => $(id).innerHTML = '');
+    ['warn', 'summary', 'best', 'spots', 'photos', 'sea'].forEach(id => $(id).innerHTML = '');
     if (!state.area) $('status').textContent = '上のボタンからエリアを選んでください。';
     else if (!spotsNow().length) $('status').textContent = 'ポイントの ☆ を押すと、ここにまとまります。まずエリアを選んで、よく行くポイントの ☆ を押してください。';
     return;
@@ -625,6 +626,9 @@ function render(){
     $('best').innerHTML = `<div class="card best">${j.mark === 3 ? '<img class="stamp" src="st-iinami.png" alt="">' : ''}<h2>${dayLabel(d)} のおすすめ</h2><div class="big">${markHtml(j.mark)} ${esc(best.r.sp.name)}　${best.s.hr}時ごろ</div><p class="why">${j.reasons.map(esc).join('<br>')}${j.cautions.length ? '<br><strong>注意：' + j.cautions.map(esc).join('・') + '</strong>' : ''}</p><p class="small" style="margin:6px 0 0">${esc(conf(best.r.sp, d * 24 + best.s.hr))}</p></div>`;
   }
 
+  // 今日のまとめ：その日のうねり・風・おすすめを文章にする（v1.0.12・Museの試作から）。失敗してもほかの表示は止めない
+  try { $('summary').innerHTML = daySummary(d, as, best, res); } catch (e) { $('summary').innerHTML = ''; }
+
   // ポイントごとのカード。★を付けたポイントを先頭に、そのあとは良い順
   const favs = load('nz-fav', []), top = r => Math.max(...r.slots.map(s => s.j.mark < 0 ? -1 : s.j.score));
   res.sort((a, b) => favs.includes(b.sp.id) - favs.includes(a.sp.id) || top(b) - top(a));
@@ -647,6 +651,30 @@ function render(){
   $('photos').innerHTML = recent.length ? `<div class="card"><h2>📷 現地の写真（新しい順）</h2><p class="small" style="margin:0">みんなが送ってくれた写真です。今の様子ではありません。</p>${recent.map(p => photoHtml(p, true)).join('')}</div>` : '';
 
   renderSea(d, as);
+}
+
+// 今日のまとめ：うねり・風・おすすめ・注意報を、データから3文にまとめる
+function daySummary(d, as, best, res){
+  const row = best ? best.r : res[0], a = AREAS.find(x => x.id === row.sp.area);
+  const S = DATA[a.id].sea[row.sp.s].hourly, hrs = daySlots(d);
+  const avg = x => x.reduce((p, c) => p + c, 0) / (x.length || 1);
+  const sws = hrs.map(hr => { const i = d * 24 + hr, ps = S.parts[i].filter(p => p[0] > .05); return ps.length ? { h: median(ps.map(p => p[0])), dd: circMean(ps.map(p => p[1])), t: median(ps.map(p => p[2])) } : { h: S.wave_height[i] || 0, dd: S.wave_direction[i] || 0, t: S.wave_period[i] || 0 }; });
+  const half = Math.max(1, Math.floor(hrs.length / 2)), wv = hrs.map(hr => S.wave_height[d * 24 + hr] || 0);
+  const dH = avg(wv.slice(half)) - avg(wv.slice(0, half));
+  const trend = dH > .15 ? '後半に少し上がる' : dH < -.15 ? '後半に少し落ちる' : '一日を通して大きくは変わらない';
+  const s1 = `${a.tag}のうねりは${dirName(circMean(sws.map(x => x.dd)))}から ${avg(sws.map(x => x.h)).toFixed(1)}m 前後（周期 ${Math.round(avg(sws.map(x => x.t)))} 秒）で、${trend}見込みです。`;
+  const good = best && best.s.j.mark >= 1, hAvg = avg(wv);
+  const off = t => /オフ|無風/.test(t), types = row.slots.map(s => off(s.j.windType)), mid = Math.max(1, Math.floor(types.length / 2));
+  const amOff = types.slice(0, mid).filter(Boolean).length >= Math.ceil(mid / 2), pmOff = types.slice(mid).filter(Boolean).length >= Math.ceil((types.length - mid) / 2);
+  // 見送りの日は、風の良い話を書かない（入ってよいと読まれないように）。代わりに海の荒れ具合をはっきり書く
+  const s2 = !good ? (hAvg >= 2.5 ? '沖の波が大きく、海が荒れています。' : hAvg >= 1.8 ? '沖の波がふだんより大きい日です。' : '') : `${row.sp.name}の風は、` + (amOff && pmOff ? '一日オフショア寄りで、面はきれいに保たれそうです。' : amOff ? '朝はオフショアでも、午後はオンショア寄りに変わって面が乱れそうです。' : pmOff ? '朝はオンショアで面が乱れ気味でも、午後はオフショアに変わって整ってきそうです。' : '一日オンショア寄りで、面はザワつきそうです。');
+  // 「危」の時間があれば、まとめにも必ず書く（まとめだけ読んだ人が入らないように）
+  const dHrs = good ? row.slots.filter(s => s.j.mark < 0).map(s => s.hr) : [];
+  const s2b = dHrs.length ? `ただし ${dHrs.join('・')}時は「危」（入らない）です。` : '';
+  const wnames = [...new Set(as.flatMap(x => (JMA.warn[x.id] ? JMA.warn[x.id].codes : []).map(c => WARN[c][0])))];
+  const s3 = (good ?`${dayLabel(d)}は ${best.r.sp.name} の ${best.s.hr}時ごろが一番良さそうです。` : `${dayLabel(d)}は、あなたのレベルに合う条件のポイントがなさそうです。`)
+    + (wnames.length ? `気象庁の${wnames.slice(0, 2).join('・')}が出ているエリアがあります。入る前に確認してください。` : '');
+  return `<div class="card"><h2>📝 ${dayLabel(d)} のまとめ</h2><p style="margin:0;font-size:15px">${esc(s1 + s2 + s2b + s3)}</p></div>`;
 }
 
 function renderSea(d, as){
