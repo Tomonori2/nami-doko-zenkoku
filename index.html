@@ -83,7 +83,7 @@ main{max-width:560px;margin:0 auto;padding:12px 12px 40px}
 .ans button{flex:1;font-size:22px;font-weight:800;border:2px solid var(--line);background:#fff;border-radius:12px;padding:6px 0;cursor:pointer}
 .ans button.on{background:var(--sea);color:#fff;border-color:var(--sea)}
 .form label{display:block;font-size:14px;font-weight:700;margin:10px 0 0}
-.form input[type=text],.form input[type=time],.form select,.form input[type=file]{display:block;width:100%;margin-top:3px;padding:10px;font-size:16px;border:2px solid var(--line);border-radius:10px;background:#fff;font-family:inherit}
+.form input[type=text],.form input[type=time],.form input[type=date],.form select,.form input[type=file]{display:block;width:100%;margin-top:3px;padding:10px;font-size:16px;border:2px solid var(--line);border-radius:10px;background:#fff;font-family:inherit}
 .form .chk{font-weight:400;display:flex;gap:8px;align-items:flex-start}
 .form .chk input{width:22px;height:22px;flex:none;margin-top:2px}
 .form .btn{width:100%;margin-top:14px;padding:13px}
@@ -120,6 +120,11 @@ footer a{color:var(--sea)}
     <button class="chip" data-level="1">中級</button>
     <button class="chip" data-level="2">上級</button>
   </div>
+  <div class="row"><span class="lbl">好みの波の大きさ（◎○の付け方が変わります。「危」は変わりません）</span>
+    <button class="chip sm" data-pref="-1">小さめが好き</button>
+    <button class="chip sm" data-pref="0">ふつう</button>
+    <button class="chip sm" data-pref="1">大きめが好き</button>
+  </div>
   <div class="row">
     <button class="chip" data-day="0">今日</button>
     <button class="chip" data-day="1">明日</button>
@@ -137,6 +142,23 @@ footer a{color:var(--sea)}
   <div id="photos"></div>
   <div id="sea"></div>
   <div id="log"></div>
+
+  <details class="card" id="diaryCard">
+    <summary style="cursor:pointer;font-size:17px;font-weight:800">📓 わたしの波日記</summary>
+    <div id="diarySummary" style="margin-top:8px"></div>
+    <form id="diaryForm" class="form">
+      <label>日<input type="date" id="dDate" required></label>
+      <label>ポイント<select id="dSpot" required></select></label>
+      <label>時間帯<select id="dSlot"></select></label>
+      <label>実際の波の大きさ<select id="dSize"></select></label>
+      <label>どうだった？<select id="dCond"><option value="2">良かった</option><option value="1" selected>ふつう</option><option value="0">イマイチ</option></select></label>
+      <label>ボード（なくてもOK）<input type="text" id="dBoard" maxlength="30" placeholder="例：6'2 フィッシュ"></label>
+      <label>メモ（なくてもOK）<input type="text" id="dMemo" maxlength="60" placeholder="例：朝は面がきれいだった"></label>
+      <button class="btn" type="submit" style="width:100%;margin-top:14px;padding:13px">記録する</button>
+      <p id="dMsg" style="margin:8px 0 0;font-weight:700"></p>
+    </form>
+    <div id="diaryList"></div>
+  </details>
 
   <details class="card" id="sendCard" hidden>
     <summary style="cursor:pointer;font-size:17px;font-weight:800">📷 いまの海の写真・動画を送る</summary>
@@ -209,7 +231,7 @@ footer a{color:var(--sea)}
 </footer>
 
 <script>
-const VERSION = 'v1.0.12';
+const VERSION = 'v1.0.13';
 
 // ───── ポイントの特徴データ（ここを直すと判定が変わる） ─────
 // area   : どのエリアか（下の AREAS の id）
@@ -307,6 +329,15 @@ const savedArea = load('nz-area', '');
 const state = { level: load('nz-level', 0), day: 0, area: savedArea === 'fav' || AREAS.some(a => a.id === savedArea) ? savedArea : '' };
 const DATA = {};   // エリアごと {t, wx:[...], sea:[...]}
 
+// 好みの波の大きさ（-1=小さめ 0=ふつう 1=大きめ）。この端末の中だけに保存（v1.0.13・Museの試作から）
+let PREF = [-1, 0, 1].includes(load('nz-pref', 0)) ? load('nz-pref', 0) : 0;
+// 好みで動かすのは「ちょうど良い大きさ」の幅（a〜b）だけ。lo と hi（＝「危」の線）は絶対に動かさない
+function prefZone(z){
+  if (!PREF) return z;
+  const k = PREF < 0 ? .8 : 1.2, b = Math.min(z.b * k, z.hi * .9), a = clamp(z.a * k, z.lo + .05, b - .1);
+  return { lo: z.lo, a, b, hi: z.hi };
+}
+
 function sizeLabel(m){
   if (m < .3) return 'ほぼ波なし';
   if (m < .5) return 'ヒザ';
@@ -351,15 +382,15 @@ function part(sp, H, D, T){
   return brk(H, T) * expo;
 }
 
-// 判定の本体：点数(0〜1)と理由を返す
-function judge(sp, h, level){
+// 判定の本体：点数(0〜1)と理由を返す。std=true のときは好みを効かせない（写真を送るときの答え合わせ用）
+function judge(sp, h, level, std){
   const r = { reasons: [], dangers: [], cautions: [] };
   // ① 岸での波の大きさの目安。うねりと風波を別々に岸のサイズへ直して合わせる。これをモデルごとに行い、真ん中の値を使う
   const faces = h.parts.map(p => Math.hypot(part(sp, p[0], p[1], p[2]), part(sp, p[3], p[4], p[5])) * sp.gain).sort((x, y) => x - y);
   const raw = median(h.parts.map(p => Math.hypot(brk(p[0], p[2]), brk(p[3], p[5]))));
   r.face = median(faces); r.faceMin = faces[0]; r.faceMax = faces[faces.length - 1];
   const expo = raw ? r.face / raw / sp.gain : 0;
-  const z = SIZE[level];
+  const z = std ? SIZE[level] : prefZone(SIZE[level]);   // 好みでずらしても z.hi（危の線）は SIZE と同じ
   let sizeScore;
   if (r.face < z.lo) sizeScore = .1;
   else if (r.face < z.a) sizeScore = .4 + .6 * (r.face - z.lo) / (z.a - z.lo);
@@ -380,7 +411,7 @@ function judge(sp, h, level){
     if (swT < 10) { sizeScore *= .55; r.cautions.push(`周期${swT.toFixed(0)}秒と短めで、砂浜では崩れやすい波`); }
   }
   const fit = expo > .8 ? 'うねりの向きが合う' : expo > .45 ? 'うねりは少しそれる' : 'うねりの向きが合わず小さくなる';
-  r.reasons.push(`サイズ目安：${sizeLabel(r.face)}（${fit}）`);
+  r.reasons.push(`サイズ目安：${sizeLabel(r.face)}（${fit}）${!std && PREF ? (PREF < 0 ? '・好み：小さめ' : '・好み：大きめ') : ''}`);
   // ② 風
   let ws = h.wind, sheltered = sp.shelter.some(rg => inRange(h.windDir, rg));
   if (sheltered) ws *= .5;
@@ -513,7 +544,7 @@ function initForm(){
     try {
       const sp = SPOTS.find(s => s.id === $('fSpot').value), time = $('fTime').value;
       let pred = {};   // その時刻のアプリの予想もいっしょに送る＝あとで答え合わせに使う（中級の基準でそろえる）
-      if (DATA[sp.area]) { const j = judge(sp, hourData(sp, clamp(+time.slice(0, 2), 0, 23)), 1); pred = { mark: j.mark, face: j.face }; }
+      if (DATA[sp.area]) { const j = judge(sp, hourData(sp, clamp(+time.slice(0, 2), 0, 23)), 1, true); pred = { mark: j.mark, face: j.face }; }
       const body = { spot: sp.id, date: todayJst(), time, size: +$('fSize').value, cond: +$('fCond').value, memo: $('fMemo').value, pred, ver: VERSION };
       if (file.type.startsWith('video/')) {
         msg.textContent = '動画を小さく作り直しています…（画面を開いたままにしてください）';
@@ -577,7 +608,9 @@ function render(){
   document.querySelectorAll('[data-level]').forEach(b => b.classList.toggle('on', +b.dataset.level === state.level));
   document.querySelectorAll('[data-day]').forEach(b => b.classList.toggle('on', +b.dataset.day === state.day));
   document.querySelectorAll('[data-area]').forEach(b => b.classList.toggle('on', b.dataset.area === state.area));
+  document.querySelectorAll('[data-pref]').forEach(b => b.classList.toggle('on', +b.dataset.pref === PREF));
   renderLog();
+  renderDiary();
   if (!ready()) {
     ['warn', 'summary', 'best', 'spots', 'photos', 'sea'].forEach(id => $(id).innerHTML = '');
     if (!state.area) $('status').textContent = '上のボタンからエリアを選んでください。';
@@ -742,6 +775,48 @@ function tideSvg(lv, hi, lo, now){
   </svg>`;
 }
 
+// わたしの波日記：行った日の記録と、記録からの「当たり条件」の集計。保存先はこの端末の中だけ（v1.0.13・Museの試作から）
+function renderDiary(){
+  const sum = $('diarySummary'), lst = $('diaryList');
+  const list = load('nz-diary', []);
+  if (!list.length) {
+    sum.innerHTML = '<p class="small" style="margin:0">海に行った日を記録すると、あなたの「当たり条件」（良かった日の波の大きさ・時間帯・ポイント）がここにたまります。記録はこのスマホの中だけに保存され、どこにも送りません。</p>';
+    lst.innerHTML = '';
+    return;
+  }
+  const good = list.filter(e => e.cond === 2), lines = [];
+  const mode = (arr, key) => { const c = {}; arr.forEach(e => { const k = key(e); if (k != null) c[k] = (c[k] || 0) + 1; }); const ks = Object.keys(c).sort((x, y) => c[y] - c[x]); return ks.length ? { k: ks[0], n: c[ks[0]] } : null; };
+  if (good.length) {
+    const sz = mode(good, e => e.size); if (sz) lines.push(`「良かった」が多かった波の大きさ：<strong>${esc(SIZES[+sz.k] || '')}</strong>（${sz.n}回）`);
+    const sl = mode(good, e => e.slot); if (sl) lines.push(`よく良かった時間帯：<strong>${esc(sl.k)}時ごろ</strong>（${sl.n}回）`);
+  } else lines.push('「良かった」の記録はまだありません。');
+  const bySpot = {};
+  list.forEach(e => { (bySpot[e.spot] = bySpot[e.spot] || []).push(e); });
+  let bs = null;
+  Object.entries(bySpot).forEach(([id, es]) => { if (es.length < 2) return; const g = es.filter(e => e.cond === 2).length, r = g / es.length; if (g && (!bs || r > bs.r || (r === bs.r && es.length > bs.n))) bs = { id, g, n: es.length, r }; });
+  if (bs) { const sp = SPOTS.find(s => s.id === bs.id); lines.push(`相性の良さそうなポイント：<strong>${esc(sp ? sp.name : bs.id)}</strong>（良かった ${bs.g}／${bs.n}回）`); }
+  sum.innerHTML = `<h3 style="font-size:14px;margin:0 0 4px">あなたの当たり条件（記録 ${list.length} 件から）</h3><ul style="margin:0;padding-left:1.2em;font-size:14px">${lines.map(l => `<li>${l}</li>`).join('')}</ul>`;
+  lst.innerHTML = `<h3 style="font-size:14px;margin:12px 0 4px">記録（新しい順）</h3>` + list.slice(0, 20).map(e => {
+    const sp = SPOTS.find(s => s.id === e.spot), [, m, dd] = String(e.date).split('-');
+    return `<div style="border-top:1px solid var(--line);padding:6px 0;font-size:14px;overflow:hidden"><strong>${+m}/${+dd}</strong> ${esc(sp ? sp.name : '')}${e.slot != null ? ' ' + esc(e.slot) + '時ごろ' : ''}　${esc(SIZES[e.size] || '')}・${esc(['イマイチ', 'ふつう', '良かった'][e.cond] || '')}${e.board ? '<br>ボード：' + esc(e.board) : ''}${e.memo ? '<br>' + esc(e.memo) : ''} <button type="button" class="btn ghost" data-diarydel="${+e.id}" style="padding:2px 8px;font-size:12px;float:right">消す</button></div>`;
+  }).join('') + `<p style="margin:10px 0 0"><button type="button" class="btn ghost" id="clearDiary">記録をぜんぶ消す</button></p>`;
+}
+function initDiary(){
+  $('dSpot').innerHTML = AREAS.map(a => `<optgroup label="${esc(a.tag)}">${SPOTS.filter(s => s.area === a.id).map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</optgroup>`).join('');
+  $('dSlot').innerHTML = '<option value="">指定なし</option>' + SLOTS.map(h => `<option value="${h}">${h}時ごろ</option>`).join('');
+  $('dSize').innerHTML = SIZES.map((s, i) => `<option value="${i}">${esc(s)}</option>`).join('');
+  $('dSize').value = '4';
+  $('dDate').value = todayJst();
+  $('diaryForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const list = load('nz-diary', []);
+    list.unshift({ id: Date.now(), date: $('dDate').value || todayJst(), spot: $('dSpot').value, slot: $('dSlot').value === '' ? null : +$('dSlot').value, size: +$('dSize').value, cond: +$('dCond').value, board: $('dBoard').value.trim(), memo: $('dMemo').value.trim() });
+    save('nz-diary', list.slice(0, 200));
+    $('dBoard').value = ''; $('dMemo').value = ''; $('dMsg').textContent = '記録しました。';
+    renderDiary();
+  });
+}
+
 function renderLog(){
   const logs = load('nz-log', {}), keys = Object.keys(logs).sort().reverse();
   if (!keys.length) { $('log').innerHTML = ''; return; }
@@ -772,6 +847,9 @@ document.addEventListener('click', e => {
   else if (b.dataset.fav) { e.preventDefault(); const f = load('nz-fav', []), i = f.indexOf(b.dataset.fav); if (i < 0) f.push(b.dataset.fav); else f.splice(i, 1); save('nz-fav', f); render(); }
   else if (b.dataset.ans != null) { e.preventDefault(); answer(b.dataset.spot, +b.dataset.ans); }
   else if (b.id === 'clearLog') { if (confirm('答え合わせの記録をぜんぶ消します。よろしいですか？')) { save('nz-log', {}); render(); } }
+  else if (b.dataset.pref != null) { PREF = +b.dataset.pref; save('nz-pref', PREF); render(); }
+  else if (b.dataset.diarydel) { save('nz-diary', load('nz-diary', []).filter(x => x.id !== +b.dataset.diarydel)); renderDiary(); }
+  else if (b.id === 'clearDiary') { if (confirm('波日記の記録をぜんぶ消します。よろしいですか？')) { save('nz-diary', []); renderDiary(); } }
   else if (b.id === 'reload') { fetchData(true); }
   else if (b.dataset.play) { b.closest('.media').innerHTML = `<iframe src="https://drive.google.com/file/d/${esc(b.dataset.play)}/preview" allow="autoplay; fullscreen" allowfullscreen title="動画"></iframe>`; }
   else if (b.id === 'goSend') { const c = $('sendCard'); c.open = true; c.scrollIntoView({ behavior: 'smooth' }); }
@@ -892,6 +970,7 @@ $('countOff').onchange = () => { const st = load('nz-count', {}); st.off = $('co
 countOpen();
 pruneOld();
 initForm();
+initDiary();
 fetchData(false);
 fetchPhotos();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
