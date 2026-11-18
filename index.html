@@ -231,7 +231,7 @@ footer a{color:var(--sea)}
 </footer>
 
 <script>
-const VERSION = 'v1.0.13';
+const VERSION = 'v1.0.14';
 
 // ───── ポイントの特徴データ（ここを直すと判定が変わる） ─────
 // area   : どのエリアか（下の AREAS の id）
@@ -904,17 +904,30 @@ async function fetchJma(as){
   render();
 }
 
+// 11/18：風と天気の入口（api.open-meteo.com）の一部のサーバーが、11/13から固まって返事をしない（Open-Meteo の issue #2329）。
+// 8秒でつながらなければ、同じ予報を出す別の入口（historical-forecast-api）から取る。直れば自動でいつもの入口に戻る
+const WX_HOSTS = ['https://api.open-meteo.com', 'https://historical-forecast-api.open-meteo.com'];
+async function getJson(u, ms){
+  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try { const r = await fetch(u, { signal: c.signal }); if (!r.ok) throw new Error(r.status); return await r.json(); }
+  finally { clearTimeout(t); }
+}
+async function getWx(path){
+  try { return await getJson(WX_HOSTS[0] + path, 8000); }
+  catch (e) { return await getJson(WX_HOSTS[1] + path, 25000); }
+}
+
 // 1つのエリアの予報を取る。30分以内に取った分があればそれを使う
 const arr = x => Array.isArray(x) ? x : [x];   // 地点が1つだけだと、配列でなく1つの形で返ってくる
 async function fetchArea(a, force){
   const key = 'nz-data-' + a.id, cached = DATA[a.id] || load(key, null);
   if (cached && !force && Date.now() - cached.t < 30 * 60 * 1000) { DATA[a.id] = cached; return ''; }
   const lat = p => p.map(x => x[0]).join(','), lon = p => p.map(x => x[1]).join(','), tz = '&timezone=Asia%2FTokyo&forecast_days=3';
-  const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat(a.wx)}&longitude=${lon(a.wx)}&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=sunrise,sunset&wind_speed_unit=ms&models=${WX_MODELS.join(',')}${tz}`;
+  const wxPath = `/v1/forecast?latitude=${lat(a.wx)}&longitude=${lon(a.wx)}&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&daily=sunrise,sunset&wind_speed_unit=ms&models=${WX_MODELS.join(',')}${tz}`;
   const waveUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat(a.sea)}&longitude=${lon(a.sea)}&hourly=wave_height,wave_direction,wave_period,${PART_VARS.join(',')}&models=${WAVE_MODELS.join(',')}${tz}`;
   const seaUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat(a.sea)}&longitude=${lon(a.sea)}&hourly=sea_level_height_msl,sea_surface_temperature${tz}`;
   try {
-    const [wx, wave, sea] = (await Promise.all([wxUrl, waveUrl, seaUrl].map(u => fetch(u).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })))).map(arr);
+    const [wx, wave, sea] = (await Promise.all([getWx(wxPath), getJson(waveUrl, 25000), getJson(seaUrl, 25000)])).map(arr);
     DATA[a.id] = { t: Date.now(), wx: wx.map(mergeWx), sea: wave.map((w, i) => mergeSea(w, sea[i])) };
     save(key, DATA[a.id]);
     return '';
