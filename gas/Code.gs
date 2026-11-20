@@ -112,12 +112,39 @@ function doPost(e) {
   } finally { lock.releaseLock(); }
 }
 
+// 「非公開」にした写真・動画は、リンクを知っていても見られないように閉じる（2026-11-21 安全点検）。
+// 届いた時点では、シートの小さい画像（=IMAGE）が見えるように「リンクを知っている人」のままにしている。
+// 「非公開」→ 閉じる／あとで「公開」に戻したら → 開け直す。どこまでやったかは P_ファイルID で覚える。
+// シートの書き換えにはトリガーを使わず、アプリが一覧を取りに来たとき（doGet）に追いつく。
+function syncSharing_(rows, idCols) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(3000)) return;   // ほかの人が同じことをしていれば、今回は見送る（次の人がやる）
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const done = props.getProperties();
+    rows.forEach(function (r) {
+      const hide = r[COL['公開']] === '非公開';
+      idCols.forEach(function (c) {
+        const id = r[c];
+        if (!id || !/^[A-Za-z0-9_\-]+$/.test(id)) return;
+        const closed = done['P_' + id] === '1';
+        if (hide === closed) return;
+        try {
+          DriveApp.getFileById(id).setSharing(hide ? DriveApp.Access.PRIVATE : DriveApp.Access.ANYONE_WITH_LINK, hide ? DriveApp.Permission.NONE : DriveApp.Permission.VIEW);
+          if (hide) props.setProperty('P_' + id, '1'); else props.deleteProperty('P_' + id);
+        } catch (e) {}   // 手で消したファイルなどは飛ばす
+      });
+    });
+  } finally { lock.releaseLock(); }
+}
+
 // アプリに、最近14日分の「公開」の行だけを返す（「保留」「非公開」は写真・動画もひとことも出ない）
 function doGet() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET);
   if (!sh || sh.getLastRow() < 2) return json_({ ok: true, list: [] });
   const rows = sh.getRange(2, 1, sh.getLastRow() - 1, HEAD.length).getDisplayValues()
     .map(function (r) { r[COL['日']] = r[COL['日']].replace(/^'/, ''); r[COL['時刻']] = r[COL['時刻']].replace(/^'/, ''); return r; });
+  syncSharing_(rows, [COL['写真ID'], COL['動画ID']]);
   const since = Utilities.formatDate(new Date(Date.now() - 14 * 864e5), 'Asia/Tokyo', 'yyyy-MM-dd');
   const okId = function (s) { return /^[A-Za-z0-9_\-]+$/.test(s); };
   const list = rows.filter(function (r) {

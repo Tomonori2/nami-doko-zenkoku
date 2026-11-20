@@ -2,6 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<!-- CSP＝このページが話してよい相手の名簿（2026-11-21 安全点検で追加）。通信先を足すときは connect-src にも足す -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://drive.google.com https://*.googleusercontent.com; media-src 'self' blob:; frame-src https://drive.google.com; connect-src 'self' https://api.open-meteo.com https://marine-api.open-meteo.com https://historical-forecast-api.open-meteo.com https://www.jma.go.jp https://script.google.com https://script.googleusercontent.com; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>全国波情報｜無料のサーフィン波予想（茨城・千葉・湘南・静岡・伊良湖・宮崎）</title>
 <meta name="description" content="全国24のサーフポイントの波を、風とうねりから◎○△×で予想する無料アプリ。初心者・中級・上級のレベル別に、今日・明日・あさっての良い時間がわかります。大洗・一宮・鴨川・鵠沼・御前崎・伊良湖・木崎浜など。登録なし。">
@@ -231,7 +233,7 @@ footer a{color:var(--sea)}
 </footer>
 
 <script>
-const VERSION = 'v1.0.15';
+const VERSION = 'v1.0.16';
 
 // ───── ポイントの特徴データ（ここを直すと判定が変わる） ─────
 // area   : どのエリアか（下の AREAS の id）
